@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #WHEN MAKE ANY CHANGE, ALWAYS UPDATE THE DATE
-#LAST UPDATED 16 FEB 2020
+#LAST UPDATED 25 FEB 2020
 
 #SETTING ROS DISINI
 nama_node = 'basestation'
@@ -930,7 +930,7 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
             robot1_command[1]=0
             robot1_command[2]=0
             robot1_command[3]=0
-            
+
         else :
             robot1_overrideToggle = False
             robot1_offsetFromRobot[0] = robot1_subsstat[0]
