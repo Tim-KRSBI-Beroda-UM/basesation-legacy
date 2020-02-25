@@ -41,6 +41,8 @@ ownrefbox = ''
 tim = 0
 offset_lapangan_x = 105
 offset_lapangan_y = 50
+strategi_menyerang = None
+strategi_bertahan = None
 
 def line_intersection(line1, line2):
     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
@@ -92,6 +94,7 @@ robot1_offsetFromMap = np.array([34,34,0])
 robot1_offsetFromRobot = np.array([0,0,0])
 robot1_overrideToggle = False
 robot1_command = np.array([0,0,0,0])
+robot1_posstat = np.array([0,0,0,0,0,0,0,0]) #posx posy posz wpx wpy wpz bolax bolay
 
 robot2_subsstat = np.array([-100,-100,90,-100,-100,0,0,-1]) #posx posy hdg ballx bally ball gawanghdg behav
 robot2_offsetFromMap = np.array([34,34+40,0])
@@ -237,20 +240,34 @@ class command_thread(QThread):
                 robot1_command[0]=0
             else :
                 robot1_command[0]=3
+            if robot2_overrideToggle is True :
+                robot2_command[0]=0
+            else :
+                robot2_command[0]=3
+            if robot3_overrideToggle is True :
+                robot3_command[0]=0
+            else :
+                robot3_command[0]=3
 
+        elif input == 'Cyan KickOff':
+            if robot1_overrideToggle is True :
+                robot1_command[0]=0
+            else :
+                robot1_command[0]=3
 
             if robot2_overrideToggle is True :
                 robot2_command[0]=0
-
             else :
                 robot2_command[0]=3
                 robot2_command[1],robot2_command[2],robot2_command[3] = self.gotowp1(robot2_posstat[0],robot2_posstat[1],robot2_posstat[2],robot2_posstat[3],robot2_posstat[4],robot2_posstat[5])
-
 
             if robot3_overrideToggle is True :
                 robot3_command[0]=0
             else :
                 robot3_command[0]=3
+
+
+
 
     def run(self):
         global check_refbox
@@ -366,7 +383,24 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
 
         self.refbox.stateChanged.connect(self.handle_refbox)
 
+        self.btn_saveSerang.clicked.connect(self.handle_btn_saveSerang)
+        self.btn_saveBertahan.clicked.connect(self.handle_btn_saveBertahan)
+
         self.show()
+
+    def handle_btn_saveSerang(self):
+        global strategi_menyerang
+        strategi_menyerang = self.menyerang.currentText()
+
+        self.command.setText(str(strategi_menyerang))
+
+
+    def handle_btn_saveBertahan(self):
+        global strategi_bertahan
+        strategi_bertahan = self.bertahan.currentText()
+
+        #self.command.setText(str(strategi_menyerang)+","+str(strategi_bertahan))
+
 
     def keyPressEvent(self,event):
 
@@ -536,8 +570,26 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
             self.curpos_r1.setZ(robot1_offsetFromMap[2])
 
         elif robot1_overrideToggle is False:
-            self.curpos_r1.setX((robot1_subsstat[0] - robot1_offsetFromRobot[0]) + robot1_offsetFromMap[0])
-            self.curpos_r1.setY((robot1_subsstat[1] - robot1_offsetFromRobot[1]) + robot1_offsetFromMap[1])
+            x_r1 = (robot1_subsstat[0] - robot1_offsetFromRobot[0]) + robot1_offsetFromMap[0]
+            y_r1 = (robot1_subsstat[1] - robot1_offsetFromRobot[1]) + robot1_offsetFromMap[1]
+
+            if x_r1 != self.lastx_r1 :
+                outx_r1 = x_r1 - self.lastx_r1
+            else :
+                outx_r1 = 0
+            if y_r1 != self.lasty_r1 :
+                outy_r1 = y_r1 - self.lasty_r1
+            else :
+                outy_r1 = 0
+
+            self.lastx_r1 = x_r1
+            self.lasty_r1 = y_r1
+
+            yout_r1 = outx_r1*np.cos(np.radians(self.curpos_r1.z())) + outy_r1*-np.sin(np.radians(self.curpos_r1.z()))
+            xout_r1 = outx_r1*np.sin(np.radians(self.curpos_r1.z())) + outy_r1*np.cos(np.radians(self.curpos_r1.z()))
+
+            self.curpos_r1.setX(self.curpos_r1.x()+xout_r1)
+            self.curpos_r1.setY(self.curpos_r1.y()+yout_r1)
             self.curpos_r1.setZ((robot1_subsstat[2] - robot1_offsetFromRobot[2]) + robot1_offsetFromMap[2])
 
         if self.curpos_r1.x() < 65 :
@@ -548,6 +600,12 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
             self.curpos_r1.setY(50)
         elif self.curpos_r1.y() > 450 :
             self.curpos_r1.setY(450)
+
+        robot1_posstat[0] = self.curpos_r1.x()-offset_lapangan_x
+        robot1_posstat[1] = self.curpos_r1.y()-offset_lapangan_y
+        robot1_posstat[2] = self.curpos_r1.z()
+        self.defwp_r1.setX(robot1_posstat[3]+offset_lapangan_x)
+        self.defwp_r1.setY(robot1_posstat[4]+offset_lapangan_y)
 
         if robot2_overrideToggle is True:
             self.curpos_r2.setX(robot2_offsetFromMap[0])
@@ -629,6 +687,12 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
             self.curpos_r3.setY(50)
         elif self.curpos_r3.y() > 450 :
             self.curpos_r3.setY(450)
+
+        robot3_posstat[0] = self.curpos_r3.x()-offset_lapangan_x
+        robot3_posstat[1] = self.curpos_r3.y()-offset_lapangan_y
+        robot3_posstat[2] = self.curpos_r3.z()
+        self.defwp_r3.setX(robot3_posstat[3]+offset_lapangan_x)
+        self.defwp_r3.setY(robot3_posstat[4]+offset_lapangan_y)
 
         self.posisi_r1.setText( str(robot1_subsstat[0]) +" , "+ str(robot1_subsstat[1]) +" , "+ str(robot1_subsstat[2]))
         self.posisi_r2.setText( str(robot2_subsstat[0]) +" , "+ str(robot2_subsstat[1]) +" , "+ str(robot2_subsstat[2]))
@@ -747,10 +811,12 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
         #painter.drawPoint(self.atkwp_r1)
         #painter.setPen(QPen(Qt.red,  1, Qt.DashDotLine))
         #painter.drawLine(self.curpos_r1.x(),self.curpos_r1.y(),self.atkwp_r1.x(),self.atkwp_r1.y())
-        #painter.setPen(QPen(Qt.blue,  10, Qt.SolidLine))
-        #painter.drawPoint(self.defwp_r1)
-        #painter.setPen(QPen(Qt.blue,  1, Qt.DashDotLine))
-        #painter.drawLine(self.curpos_r1.x(),self.curpos_r1.y(),self.defwp_r1.x(),self.defwp_r1.y())
+
+        painter.setPen(QPen(Qt.blue,  10, Qt.SolidLine))
+        painter.drawPoint(self.defwp_r1)
+        painter.setPen(QPen(Qt.blue,  2, Qt.DashDotLine))
+        painter.drawLine(self.curpos_r1.x(),self.curpos_r1.y(),self.defwp_r1.x(),self.defwp_r1.y())
+
         painter.setPen(QPen(QColor(255,107,3),  10, Qt.DotLine))
         painter.drawPoint(self.curpos_r1.x() + self.ball_r1.y(), self.curpos_r1.y() + self.ball_r1.x())
         painter.setPen(QPen(QColor(255,107,3),  1, Qt.DashDotLine))
@@ -765,7 +831,7 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
 
         painter.setPen(QPen(Qt.blue,  10, Qt.SolidLine))
         painter.drawPoint(self.defwp_r2)
-        painter.setPen(QPen(Qt.blue,  1, Qt.DashDotLine))
+        painter.setPen(QPen(Qt.blue,  2, Qt.DashDotLine))
         painter.drawLine(self.curpos_r2.x(),self.curpos_r2.y(),self.defwp_r2.x(),self.defwp_r2.y())
 
         painter.setPen(QPen(QColor(255,107,3),  10, Qt.DotLine))
@@ -779,10 +845,10 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
         #painter.setPen(QPen(Qt.red,  1, Qt.DashDotLine))
         #painter.drawLine(self.curpos_r3.x(),self.curpos_r3.y(),self.atkwp_r3.x(),self.atkwp_r3.y())
 
-        #painter.setPen(QPen(Qt.blue,  10, Qt.SolidLine))
-        #painter.drawPoint(self.defwp_r3)
-        #painter.setPen(QPen(Qt.blue,  1, Qt.DashDotLine))
-        #painter.drawLine(self.curpos_r3.x(),self.curpos_r3.y(),self.defwp_r3.x(),self.defwp_r3.y())
+        painter.setPen(QPen(Qt.blue,  10, Qt.SolidLine))
+        painter.drawPoint(self.defwp_r3)
+        painter.setPen(QPen(Qt.blue,  2, Qt.DashDotLine))
+        painter.drawLine(self.curpos_r3.x(),self.curpos_r3.y(),self.defwp_r3.x(),self.defwp_r3.y())
 
         painter.setPen(QPen(QColor(255,107,3),  10, Qt.DotLine))
         painter.drawPoint(self.curpos_r3.x() + self.ball_r3.y(), self.curpos_r3.y() + self.ball_r3.x())
@@ -923,19 +989,20 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
         global robot1_overrideToggle
         if state == QtCore.Qt.Checked:
             robot1_overrideToggle = True
-            robot1_offsetFromMap[0] = self.curpos_r1.x()
-            robot1_offsetFromMap[1] = self.curpos_r1.y()
-            robot1_offsetFromMap[2] = self.curpos_r1.z()
             robot1_command[0]=0
             robot1_command[1]=0
             robot1_command[2]=0
             robot1_command[3]=0
 
         else :
-            robot1_overrideToggle = False
+            robot1_offsetFromMap[0] = self.curpos_r1.x()
+            robot1_offsetFromMap[1] = self.curpos_r1.y()
+            robot1_offsetFromMap[2] = self.curpos_r1.z()
             robot1_offsetFromRobot[0] = robot1_subsstat[0]
             robot1_offsetFromRobot[1] = robot1_subsstat[1]
             robot1_offsetFromRobot[2] = robot1_subsstat[2]
+            robot1_overrideToggle = False
+
 
     def override_r2_handle(self, state):
         global robot2_overrideToggle
@@ -959,7 +1026,6 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
     def override_r3_handle(self, state):
         global robot3_overrideToggle
         if state == QtCore.Qt.Checked:
-            #pass
             robot3_overrideToggle = True
             robot3_command[0]=0
             robot3_command[1]=0
@@ -1043,10 +1109,6 @@ class window(QtWidgets.QDialog, Ui_MainWindow):
     def repair_magenta_handle(self):
         global ownrefbox
         ownrefbox = 'Magenta Repair'
-
-
-
-
 
 if __name__=='__main__':
     import sys
