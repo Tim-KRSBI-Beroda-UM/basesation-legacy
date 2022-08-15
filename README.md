@@ -1,2 +1,2 @@
 # sora-basestation
-aaaa
+Program BASESTATION yang lama
